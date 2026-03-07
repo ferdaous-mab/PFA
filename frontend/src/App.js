@@ -1,12 +1,8 @@
 import React from "react";
-import RegisterPage from "./pages/Auth/Register/RegisterPage"; // <-- ton composant
+import RegisterPage from "./pages/Register";
 
 function App() {
-  return (
-    <div className="App">
-      <RegisterPage />
-    </div>
-  );
+  return <RegisterPage />;
 }
 
 export default App;
