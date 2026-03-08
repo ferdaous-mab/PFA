@@ -1,8 +1,13 @@
 import React from "react";
+import "./App.css";
 import RegisterPage from "./pages/Register";
 
 function App() {
-  return <RegisterPage />;
+  return (
+    <div className="App">
+      <RegisterPage />
+    </div>
+  );
 }
 
 export default App;

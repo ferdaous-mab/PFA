@@ -1,0 +1,19 @@
+# Backend web
+fastapi==0.109.2
+uvicorn==0.23.2
+
+# IA reconnaissance faciale
+deepface==0.0.91
+retina-face==0.0.15
+
+# Traitement d’images
+numpy==1.26.4
+opencv-python==4.8.1.78
+Pillow==10.1.0
+
+# Base de données PostgreSQL
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.22
+
+# (optionnel) pour logs et débogage
+rich==13.5.2

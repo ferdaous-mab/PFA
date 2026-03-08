@@ -10,341 +10,8 @@ const ANGLES = [
   { key: "diag_droite", label: "↗ Diag",  icon: "↗️" },
 ];
 
-const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
-  :root {
-    --bg: #050c1a;
-    --card: #0a1628;
-    --surface: #0d1f3c;
-    --accent: #f5c400;
-    --accent2: #ffd740;
-    --blue3: #42a5f5;
-    --border: #1a2f55;
-    --border2: #243a66;
-    --text: #e8f0fe;
-    --muted: #5a7aaa;
-    --success: #00e676;
-    --error: #ff5252;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Outfit', sans-serif;
-    min-height: 100vh;
-  }
-
-  .page-bg {
-    min-height: 100vh;
-    background:
-      radial-gradient(ellipse at 20% 20%, rgba(21,101,192,0.18) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 80%, rgba(245,196,0,0.10) 0%, transparent 60%),
-      var(--bg);
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 40px 16px;
-  }
-
-  .wrapper { width: 100%; max-width: 580px; }
-
-  header { text-align: center; margin-bottom: 32px; }
-
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 6px 16px;
-    border-radius: 30px;
-    background: rgba(245,196,0,0.10);
-    border: 1px solid rgba(245,196,0,0.25);
-    color: var(--accent);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 18px;
-  }
-
-  .badge-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
-
-  header h1 { font-size: 34px; font-weight: 800; line-height: 1.15; margin-bottom: 10px; }
-  header h1 em { font-style: normal; color: var(--accent); }
-  header p { font-size: 14px; color: var(--muted); }
-
-  .card {
-    background: var(--card);
-    padding: 32px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
-  }
-
-  .sec-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 2.5px;
-    color: var(--accent);
-    text-transform: uppercase;
-    margin-bottom: 18px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .sec-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, var(--border2), transparent);
-  }
-
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .field { margin-bottom: 18px; }
-
-  label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 7px; color: var(--muted); }
-
-  input, select {
-    width: 100%;
-    padding: 11px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-family: 'Outfit', sans-serif;
-    font-size: 14px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    outline: none;
-  }
-
-  input::placeholder { color: var(--muted); }
-  input:focus, select:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(245,196,0,0.10);
-  }
-
-  select {
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a7aaa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    padding-right: 36px;
-  }
-
-  select option { background: var(--surface); }
-  .divider { height: 1px; background: var(--border); margin: 24px 0; }
-
-  .facescan-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-    text-align: center;
-    margin-bottom: 24px;
-  }
-
-  .video-container {
-    position: relative;
-    width: 240px;
-    height: 240px;
-    margin: 0 auto 16px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: var(--bg);
-    border: 3px solid var(--border);
-  }
-
-  .cam-idle {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    color: var(--muted);
-    background: var(--bg);
-    border-radius: 50%;
-    z-index: 2;
-  }
-
-  .cam-idle-icon { font-size: 50px; opacity: 0.4; }
-  .cam-idle-text { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
-
-  .cam-video {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);
-    border-radius: 50%;
-    z-index: 1;
-  }
-
-  .scan-overlay {
-    position: absolute;
-    top: -8px; left: -8px;
-    width: calc(100% + 16px);
-    height: calc(100% + 16px);
-    pointer-events: none;
-    z-index: 3;
-  }
-
-  .scan-instruction {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--accent);
-    margin-bottom: 8px;
-    min-height: 24px;
-  }
-
-  .scan-instruction.success { color: var(--success); }
-  .scan-instruction.waiting { color: var(--muted); }
-
-  .progress-bar-wrap {
-    width: 100%;
-    height: 6px;
-    background: var(--border);
-    border-radius: 10px;
-    margin-bottom: 16px;
-    overflow: hidden;
-  }
-
-  .progress-bar-fill {
-    height: 100%;
-    border-radius: 10px;
-    background: linear-gradient(90deg, var(--accent), var(--blue3));
-    transition: width 0.4s ease;
-  }
-
-  .angles-grid {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-  }
-
-  .angle-chip {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    min-width: 56px;
-    transition: all 0.3s;
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .angle-chip.done {
-    border-color: var(--success);
-    background: rgba(0,230,118,0.08);
-    color: var(--success);
-  }
-
-  .angle-chip.active {
-    border-color: var(--accent);
-    background: rgba(245,196,0,0.08);
-    color: var(--accent);
-    animation: chipPulse 1s ease-in-out infinite;
-  }
-
-  @keyframes chipPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-  }
-
-  .angle-icon { font-size: 18px; }
-
-  .btn-start {
-    padding: 11px 24px;
-    border: 1.5px solid var(--accent);
-    background: transparent;
-    color: var(--accent);
-    border-radius: 30px;
-    cursor: pointer;
-    font-family: 'Outfit', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    transition: background 0.2s;
-  }
-
-  .btn-start:hover { background: rgba(245,196,0,0.10); }
-
-  .btn-restart {
-    padding: 11px 24px;
-    border: 1.5px solid var(--error);
-    background: transparent;
-    color: var(--error);
-    border-radius: 30px;
-    cursor: pointer;
-    font-family: 'Outfit', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    margin-left: 10px;
-    transition: background 0.2s;
-  }
-
-  .btn-restart:hover { background: rgba(255,82,82,0.10); }
-
-  .btn-submit {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    border-radius: 12px;
-    color: #050c1a;
-    font-family: 'Outfit', sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
-  }
-
-  .btn-submit:hover { opacity: 0.92; transform: translateY(-1px); }
-  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-  .toast {
-    position: fixed;
-    top: 30px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-80px);
-    padding: 14px 26px;
-    border-radius: 30px;
-    font-size: 14px;
-    font-weight: 600;
-    z-index: 999;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    pointer-events: none;
-  }
-
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.success { background: var(--success); color: #000; }
-  .toast.error { background: var(--error); color: #fff; }
-
-  .hidden-canvas { display: none; }
-`;
+const ANNEES = ["2024-2025", "2025-2026", "2026-2027"];
+const CLASSES = ["L1 Info", "L2 Info", "L3 Info", "M1 Info", "M2 Info", "L1 Math", "L2 Math"];
 
 export default function RegisterPage() {
   const videoRef = useRef(null);
@@ -385,7 +52,7 @@ export default function RegisterPage() {
 
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = "rgba(26,47,85,0.8)";
+    ctx.strokeStyle = "rgba(0,255,128,0.15)";
     ctx.lineWidth = 6;
     ctx.stroke();
 
@@ -393,10 +60,7 @@ export default function RegisterPage() {
       const angle = (prog / 100) * 2 * Math.PI - Math.PI / 2;
       ctx.beginPath();
       ctx.arc(cx, cy, radius, -Math.PI / 2, angle);
-      const grad = ctx.createLinearGradient(0, 0, size, size);
-      grad.addColorStop(0, "#f5c400");
-      grad.addColorStop(1, "#42a5f5");
-      ctx.strokeStyle = grad;
+      ctx.strokeStyle = "#00ff80";
       ctx.lineWidth = 6;
       ctx.lineCap = "round";
       ctx.stroke();
@@ -427,9 +91,22 @@ export default function RegisterPage() {
     });
   }, []);
 
+  const getInstructionForAngle = (angle) => {
+    const map = {
+      "face":        "Regardez droit devant",
+      "gauche":      "Tournez à gauche",
+      "droite":      "Tournez à droite",
+      "haut":        "Regardez en haut",
+      "bas":         "Regardez en bas",
+      "diag_gauche": "Tournez en haut à gauche",
+      "diag_droite": "Tournez en haut à droite"
+    };
+    return map[angle] || "";
+  };
+
   const startScanLoop = useCallback(() => {
     let lastSentTime = 0;
-    const SCAN_INTERVAL = 1500;
+    const SCAN_INTERVAL = 600; // ✅ réduit de 1500ms à 600ms
 
     const loop = async () => {
       if (!streamRef.current) return;
@@ -470,8 +147,7 @@ export default function RegisterPage() {
             setProgress(newProgress);
             drawScanRing(newProgress);
 
-            const angleName = ANGLES.find(a => a.key === detectedAngle)?.label;
-            setCurrentInstruction(`✓ ${angleName} capturé !`);
+            setCurrentInstruction(`✓ ${ANGLES.find(a => a.key === detectedAngle)?.label} capturé !`);
             setInstructionClass("success");
 
             if (Object.keys(updated).length >= ANGLES.length) {
@@ -489,25 +165,14 @@ export default function RegisterPage() {
             setTimeout(() => {
               const next = getNextAngle(updated);
               if (next) {
-                const nextInfo = ANGLES.find(a => a.key === next);
-                setCurrentInstruction(`${nextInfo?.icon} ${getInstructionForAngle(next)}`);
+                setCurrentInstruction(getInstructionForAngle(next));
                 setInstructionClass("");
               }
             }, 800);
-
-          } else if (!detectedAngle) {
-            setCurrentInstruction("Positionnez votre visage dans le cercle");
-            setInstructionClass("waiting");
-          } else {
-            const next = getNextAngle(capturedAnglesRef.current);
-            if (next) {
-              setCurrentInstruction(`${ANGLES.find(a => a.key === next)?.icon} ${getInstructionForAngle(next)}`);
-              setInstructionClass("");
-            }
           }
         }
       } catch (e) {
-        // silencieux
+        console.error(e);
       }
 
       animFrameRef.current = requestAnimationFrame(loop);
@@ -516,48 +181,40 @@ export default function RegisterPage() {
     animFrameRef.current = requestAnimationFrame(loop);
   }, [captureFrame, drawScanRing]);
 
-  const getInstructionForAngle = (angle) => {
-    const map = {
-      "face":        "Regardez droit devant",
-      "gauche":      "Tournez à gauche",
-      "droite":      "Tournez à droite",
-      "haut":        "Regardez en haut",
-      "bas":         "Regardez en bas",
-      "diag_gauche": "Tournez en haut à gauche",
-      "diag_droite": "Tournez en haut à droite"
-    };
-    return map[angle] || "";
-  };
-
+  // ✅ FIX PRINCIPAL : on démarre la caméra, puis useEffect attend que
+  // React ait monté la <video> avant d'assigner le stream
   const startCamera = async () => {
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: true });
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
       streamRef.current = s;
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-      }
+
       capturedAnglesRef.current = {};
       setCapturedAngles({});
       setProgress(0);
       setScanComplete(false);
-      setCamActive(true);
+      setCamActive(true); // déclenche le re-render qui monte la <video>
       setCurrentInstruction("😐 Regardez droit devant pour commencer");
       setInstructionClass("");
-      drawScanRing(0);
-      startScanLoop();
     } catch {
       setCurrentInstruction("Accès caméra refusé !");
       setInstructionClass("waiting");
     }
   };
 
-  const restartScan = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
+  // ✅ Assigne le stream APRÈS que la <video> soit montée dans le DOM
+  useEffect(() => {
+    if (camActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+      drawScanRing(0);
+      startScanLoop();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camActive]);
+
+  const restartScan = () => {
+    if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    if (videoRef.current) videoRef.current.srcObject = null;
     capturedAnglesRef.current = {};
     setCamActive(false);
     setCapturedAngles({});
@@ -568,9 +225,7 @@ export default function RegisterPage() {
     drawScanRing(0);
   };
 
-  const handleChange = (e) => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
-  };
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleSubmit = async () => {
     const { nom, prenom, email_academique, classe, annee_scolaire } = form;
@@ -579,7 +234,6 @@ export default function RegisterPage() {
       showToast("Veuillez remplir tous les champs.", "error");
       return;
     }
-
     if (!scanComplete) {
       showToast("Veuillez compléter le scan du visage.", "error");
       return;
@@ -588,26 +242,19 @@ export default function RegisterPage() {
     setLoading(true);
     const captured = capturedAnglesRef.current;
 
-    const formData = new FormData();
-    formData.append("nom", nom);
-    formData.append("prenom", prenom);
-    formData.append("email_academique", email_academique);
-    formData.append("classe", classe);
-    formData.append("annee_scolaire", annee_scolaire);
-    formData.append("image_face", captured["face"], "face.jpg");
-    formData.append("image_gauche", captured["gauche"], "gauche.jpg");
-    formData.append("image_droite", captured["droite"], "droite.jpg");
-    formData.append("image_haut", captured["haut"], "haut.jpg");
-    formData.append("image_bas", captured["bas"], "bas.jpg");
-    formData.append("image_diag_gauche", captured["diag_gauche"], "diag_gauche.jpg");
-    formData.append("image_diag_droite", captured["diag_droite"], "diag_droite.jpg");
+    const fd = new FormData();
+    fd.append("nom", nom);
+    fd.append("prenom", prenom);
+    fd.append("email_academique", email_academique);
+    fd.append("classe", classe);
+    fd.append("annee_scolaire", annee_scolaire);
+    ANGLES.forEach(a => fd.append(`image_${a.key}`, captured[a.key], `${a.key}.jpg`));
 
     try {
       const res = await fetch("http://localhost:8000/api/students/inscrire-complet", {
         method: "POST",
-        body: formData,
+        body: fd,
       });
-
       const data = await res.json();
 
       if (res.ok) {
@@ -638,132 +285,473 @@ export default function RegisterPage() {
 
   return (
     <>
-      <style>{styles}</style>
-      <div className={`toast ${toast.show ? "show" : ""} ${toast.type}`}>{toast.msg}</div>
+      <style>{`
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+          background: #0d1b2a;
+          color: #e0e0e0;
+          font-family: 'Segoe UI', sans-serif;
+        }
+
+        .page-bg {
+          min-height: 100vh;
+          background: #0d1b2a;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          padding: 32px 16px 48px;
+        }
+
+        .portal-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          background: rgba(0,255,128,0.08);
+          border: 1px solid rgba(0,255,128,0.3);
+          border-radius: 999px;
+          padding: 5px 18px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 2px;
+          color: #00ff80;
+          text-transform: uppercase;
+          margin-bottom: 20px;
+        }
+        .portal-badge::before {
+          content: '';
+          width: 8px; height: 8px;
+          border-radius: 50%;
+          background: #00ff80;
+          box-shadow: 0 0 6px #00ff80;
+        }
+
+        .page-title {
+          font-size: 32px;
+          font-weight: 800;
+          color: #ffffff;
+          text-align: center;
+          line-height: 1.2;
+          margin-bottom: 6px;
+        }
+        .page-title span { color: #00ff80; }
+
+        .page-subtitle {
+          font-size: 14px;
+          color: #6b7a8d;
+          text-align: center;
+          margin-bottom: 28px;
+        }
+
+        .card {
+          width: 100%;
+          max-width: 480px;
+          background: #111e2e;
+          border: 1px solid rgba(0,255,128,0.12);
+          border-radius: 18px;
+          padding: 28px 24px;
+        }
+
+        .section-label {
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 2.5px;
+          color: #00ff80;
+          text-transform: uppercase;
+          margin-bottom: 16px;
+        }
+
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-bottom: 12px;
+        }
+        .form-group label {
+          font-size: 12px;
+          color: #8899aa;
+          font-weight: 500;
+        }
+        .form-input, .form-select {
+          background: #0d1b2a;
+          border: 1px solid rgba(0,255,128,0.15);
+          border-radius: 8px;
+          padding: 10px 14px;
+          color: #c0d0e0;
+          font-size: 14px;
+          outline: none;
+          transition: border-color 0.2s;
+          width: 100%;
+          appearance: none;
+          -webkit-appearance: none;
+        }
+        .form-input::placeholder { color: #3a4a5a; }
+        .form-input:focus, .form-select:focus {
+          border-color: rgba(0,255,128,0.5);
+        }
+        .select-wrapper { position: relative; }
+        .select-wrapper::after {
+          content: '▾';
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #00ff80;
+          pointer-events: none;
+          font-size: 13px;
+        }
+        .form-select option { background: #111e2e; }
+
+        .divider {
+          border: none;
+          border-top: 1px solid rgba(0,255,128,0.08);
+          margin: 20px 0;
+        }
+
+        .face-scan-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 14px;
+        }
+
+        /* ✅ Camera container: position relative, tout en absolute dedans */
+        .cam-container {
+          position: relative;
+          width: 256px;
+          height: 256px;
+          border-radius: 14px;
+          overflow: hidden;
+          background: #0a1520;
+          border: 1px solid rgba(0,255,128,0.12);
+        }
+
+        /* ✅ Vidéo: absolute, z-index 1, visible */
+        .cam-video {
+          position: absolute;
+          top: 0; left: 0;
+          width: 100%; height: 100%;
+          object-fit: cover;
+          transform: scaleX(-1);
+          z-index: 1;
+          display: block;
+          background: transparent;
+        }
+
+        /* ✅ Canvas: au-dessus de la vidéo, transparent */
+        .cam-overlay-canvas {
+          position: absolute;
+          top: 0; left: 0;
+          width: 100%; height: 100%;
+          z-index: 2;
+          pointer-events: none;
+          background: transparent;
+        }
+
+        /* ✅ Écran inactif: en dessous du canvas */
+        .cam-inactive {
+          position: absolute;
+          top: 0; left: 0;
+          width: 100%; height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          background: #0a1e12;
+          z-index: 1;
+        }
+        .cam-inactive-icon { font-size: 42px; opacity: 0.6; }
+        .cam-inactive-text {
+          font-size: 11px;
+          letter-spacing: 2px;
+          color: rgba(0,255,128,0.5);
+          text-transform: uppercase;
+        }
+
+        .angle-dots {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+        .angle-dot {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 3px;
+          font-size: 10px;
+          color: #3a5a4a;
+          transition: color 0.3s;
+        }
+        .angle-dot.done { color: #00ff80; }
+        .dot-circle {
+          width: 28px; height: 28px;
+          border-radius: 50%;
+          border: 1.5px solid #1a3a2a;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 14px;
+          background: #0a1a12;
+          transition: all 0.3s;
+        }
+        .angle-dot.done .dot-circle {
+          border-color: #00ff80;
+          background: rgba(0,255,128,0.1);
+          box-shadow: 0 0 8px rgba(0,255,128,0.3);
+        }
+
+        .instruction-text {
+          font-size: 13px;
+          color: #8899aa;
+          text-align: center;
+          min-height: 20px;
+          transition: color 0.3s;
+        }
+        .instruction-text.success { color: #00ff80; }
+        .instruction-text.waiting { color: #4a6a5a; }
+
+        .progress-bar-bg {
+          width: 100%;
+          height: 4px;
+          background: #1a2a1a;
+          border-radius: 99px;
+          overflow: hidden;
+        }
+        .progress-bar-fill {
+          height: 100%;
+          background: #00ff80;
+          border-radius: 99px;
+          transition: width 0.4s ease;
+          box-shadow: 0 0 8px rgba(0,255,128,0.5);
+        }
+        .progress-label {
+          font-size: 11px;
+          color: #4a7a5a;
+          text-align: center;
+        }
+
+        .btn-scan {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: transparent;
+          border: 1.5px solid #00ff80;
+          border-radius: 999px;
+          padding: 9px 24px;
+          color: #00ff80;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          letter-spacing: 1px;
+          transition: background 0.2s, box-shadow 0.2s;
+        }
+        .btn-scan:hover {
+          background: rgba(0,255,128,0.08);
+          box-shadow: 0 0 14px rgba(0,255,128,0.2);
+        }
+
+        .btn-restart {
+          background: transparent;
+          border: 1px solid #1a3a2a;
+          border-radius: 8px;
+          padding: 6px 14px;
+          color: #4a7a5a;
+          font-size: 12px;
+          cursor: pointer;
+          transition: border-color 0.2s, color 0.2s;
+        }
+        .btn-restart:hover {
+          border-color: #00ff80;
+          color: #00ff80;
+        }
+
+        .btn-submit {
+          width: 100%;
+          padding: 15px;
+          background: #00ff80;
+          border: none;
+          border-radius: 10px;
+          color: #0a1a10;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          margin-top: 22px;
+          letter-spacing: 0.5px;
+          transition: opacity 0.2s, box-shadow 0.2s;
+          box-shadow: 0 0 20px rgba(0,255,128,0.25);
+        }
+        .btn-submit:hover:not(:disabled) {
+          opacity: 0.9;
+          box-shadow: 0 0 30px rgba(0,255,128,0.4);
+        }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .toast {
+          position: fixed;
+          bottom: 28px;
+          left: 50%;
+          transform: translateX(-50%) translateY(80px);
+          background: #111e2e;
+          border: 1px solid rgba(0,255,128,0.3);
+          border-radius: 10px;
+          padding: 12px 24px;
+          font-size: 14px;
+          color: #00ff80;
+          z-index: 9999;
+          transition: transform 0.35s cubic-bezier(.2,.8,.3,1), opacity 0.35s;
+          opacity: 0;
+          white-space: nowrap;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .toast.error { border-color: rgba(255,80,80,0.4); color: #ff6060; }
+
+        .hidden-canvas { display: none; }
+      `}</style>
 
       <div className="page-bg">
-        <div className="wrapper">
-          <header>
-            <div className="badge"><span className="badge-dot"></span>Portail Étudiant</div>
-            <h1>Créer votre<br /><em>compte étudiant</em></h1>
-            <p>Inscription avec scan facial 7 angles</p>
-          </header>
 
-          <div className="card">
-            <div className="sec-label">Informations personnelles</div>
+        <div className="portal-badge">Portail Étudiant</div>
+        <h1 className="page-title">
+          Créer votre<br /><span>compte étudiant</span>
+        </h1>
+        <p className="page-subtitle">Formulaire d'inscription avec vérification faciale</p>
 
-            <div className="row">
-              <div className="field">
-                <label>Nom</label>
-                <input name="nom" value={form.nom} onChange={handleChange} placeholder="Ex: Benali" />
-              </div>
-              <div className="field">
-                <label>Prénom</label>
-                <input name="prenom" value={form.prenom} onChange={handleChange} placeholder="Ex: Amira" />
-              </div>
+        <div className="card">
+
+          <div className="section-label">Informations personnelles</div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Nom</label>
+              <input className="form-input" name="nom" placeholder="Ex: Benali"
+                value={form.nom} onChange={handleChange} />
             </div>
-
-            <div className="field">
-              <label>Adresse e-mail</label>
-              <input name="email_academique" type="email" value={form.email_academique} onChange={handleChange} placeholder="etudiant@univ.dz" />
+            <div className="form-group">
+              <label>Prénom</label>
+              <input className="form-input" name="prenom" placeholder="Ex: Amira"
+                value={form.prenom} onChange={handleChange} />
             </div>
-
-            <div className="row">
-              <div className="field">
-                <label>Année scolaire</label>
-                <select name="annee_scolaire" value={form.annee_scolaire} onChange={handleChange}>
-                  <option value="">Choisir</option>
-                  <option value="2023-2024">2023-2024</option>
-                  <option value="2024-2025">2024-2025</option>
-                  <option value="2025-2026">2025-2026</option>
-                </select>
-              </div>
-              <div className="field">
-                <label>Classe</label>
-                <select name="classe" value={form.classe} onChange={handleChange}>
-                  <option value="">Choisir</option>
-                  <option value="1A">1ère Année</option>
-                  <option value="2A">2ème Année</option>
-                  <option value="3A">3ème Année</option>
-                  <option value="4A">4ème Année</option>
-                  <option value="5A">5ème Année</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="divider"></div>
-            <div className="sec-label">Scan facial — {completedCount}/7 angles</div>
-
-            <div className="facescan-box">
-              <div className="video-container">
-                {/* Idle overlay */}
-                {!camActive && !scanComplete && (
-                  <div className="cam-idle">
-                    <span className="cam-idle-icon">🔍</span>
-                    <span className="cam-idle-text">Caméra inactive</span>
-                  </div>
-                )}
-
-                {/* Scan complete overlay */}
-                {scanComplete && (
-                  <div className="cam-idle">
-                    <span className="cam-idle-icon">✅</span>
-                    <span className="cam-idle-text">Scan complet</span>
-                  </div>
-                )}
-
-                {/* Video — toujours dans le DOM */}
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="cam-video"
-                  style={{ display: camActive ? "block" : "none" }}
-                />
-
-                {/* Scan ring canvas */}
-                <canvas ref={canvasOverlayRef} className="scan-overlay" width={256} height={256} />
-              </div>
-
-              <p className={`scan-instruction ${instructionClass}`}>{currentInstruction}</p>
-
-              <div className="progress-bar-wrap">
-                <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
-              </div>
-
-              <div className="angles-grid">
-                {ANGLES.map((a) => {
-                  const isDone = !!capturedAngles[a.key];
-                  const isActive = camActive && !isDone && a.key === getNextAngle(capturedAngles);
-                  return (
-                    <div key={a.key} className={`angle-chip ${isDone ? "done" : ""} ${isActive ? "active" : ""}`}>
-                      <span className="angle-icon">{isDone ? "✓" : a.icon}</span>
-                      <span>{a.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div>
-                {!camActive && !scanComplete && (
-                  <button className="btn-start" onClick={startCamera}>
-                    ▶ Démarrer le scan
-                  </button>
-                )}
-                {(camActive || scanComplete) && (
-                  <button className="btn-restart" onClick={restartScan}>
-                    🔄 Recommencer
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <button className="btn-submit" onClick={handleSubmit} disabled={loading || !scanComplete}>
-              {loading ? "Inscription en cours..." : "Créer mon compte →"}
-            </button>
           </div>
+
+          <div className="form-group">
+            <label>Adresse e-mail</label>
+            <input className="form-input" name="email_academique" type="email"
+              placeholder="etudiant@univ.dz" value={form.email_academique} onChange={handleChange} />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Année</label>
+              <div className="select-wrapper">
+                <select className="form-select" name="annee_scolaire"
+                  value={form.annee_scolaire} onChange={handleChange}>
+                  <option value="">Choisir</option>
+                  {ANNEES.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Groupe</label>
+              <div className="select-wrapper">
+                <select className="form-select" name="classe"
+                  value={form.classe} onChange={handleChange}>
+                  <option value="">Choisir</option>
+                  {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <hr className="divider" />
+
+          <div className="section-label">Reconnaissance faciale</div>
+
+          <div className="face-scan-wrapper">
+
+            <div className="cam-container">
+              {camActive ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="cam-video"
+                  />
+                  <canvas
+                    ref={canvasOverlayRef}
+                    className="cam-overlay-canvas"
+                    width={256}
+                    height={256}
+                  />
+                </>
+              ) : (
+                <>
+                  <div className="cam-inactive">
+                    <div className="cam-inactive-icon">{scanComplete ? "✅" : "🙂"}</div>
+                    <div className="cam-inactive-text">
+                      {scanComplete ? "Scan terminé" : "Caméra inactive"}
+                    </div>
+                  </div>
+                  <canvas
+                    ref={canvasOverlayRef}
+                    className="cam-overlay-canvas"
+                    width={256}
+                    height={256}
+                  />
+                </>
+              )}
+            </div>
+
+            <div className="angle-dots">
+              {ANGLES.map(a => (
+                <div key={a.key} className={`angle-dot${capturedAngles[a.key] ? " done" : ""}`}>
+                  <div className="dot-circle">{a.icon}</div>
+                  <span>{a.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {(camActive || completedCount > 0) && (
+              <>
+                <div className="progress-bar-bg" style={{ width: "100%" }}>
+                  <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+                </div>
+                <div className="progress-label">{completedCount} / {ANGLES.length} angles capturés</div>
+              </>
+            )}
+
+            <p className={`instruction-text ${instructionClass}`}>{currentInstruction}</p>
+
+            {!camActive && !scanComplete && (
+              <button className="btn-scan" onClick={startCamera}>▶ Activer Face ID</button>
+            )}
+            {(camActive || scanComplete) && (
+              <button className="btn-restart" onClick={restartScan}>↺ Recommencer</button>
+            )}
+
+          </div>
+
+          <button
+            className="btn-submit"
+            onClick={handleSubmit}
+            disabled={loading || !scanComplete}
+          >
+            {loading ? "Inscription en cours..." : "Créer mon compte →"}
+          </button>
+
         </div>
+      </div>
+
+      <div className={`toast${toast.show ? " show" : ""}${toast.type === "error" ? " error" : ""}`}>
+        {toast.msg}
       </div>
 
       <canvas ref={hiddenCanvasRef} className="hidden-canvas" />
