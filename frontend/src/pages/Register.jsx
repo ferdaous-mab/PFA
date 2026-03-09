@@ -1,38 +1,38 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 
 const ANGLES = [
-  { key: "face",        label: "Face",     icon: "😐" },
-  { key: "gauche",      label: "Gauche",   icon: "👈" },
-  { key: "droite",      label: "Droite",   icon: "👉" },
-  { key: "haut",        label: "Haut",     icon: "☝️" },
-  { key: "bas",         label: "Bas",      icon: "👇" },
-  { key: "diag_gauche", label: "↖ Diag",  icon: "↖️" },
-  { key: "diag_droite", label: "↗ Diag",  icon: "↗️" },
+  { key: "face",        label: "Face"        },
+  { key: "gauche",      label: "Gauche"      },
+  { key: "droite",      label: "Droite"      },
+  { key: "haut",        label: "Haut"        },
+  { key: "bas",         label: "Bas"         },
+  { key: "diag_gauche", label: "Diag Gauche" },
+  { key: "diag_droite", label: "Diag Droite" },
 ];
 
-const ANNEES = ["2024-2025", "2025-2026", "2026-2027"];
-const CLASSES = ["L1 Info", "L2 Info", "L3 Info", "M1 Info", "M2 Info", "L1 Math", "L2 Math"];
+const ANNEES  = ["1ère année", "2ème année", "3ème année", "4ème année", "5ème année"];
+const CLASSES = ["A", "B", "C", "D"];
 
 export default function RegisterPage() {
-  const videoRef = useRef(null);
-  const canvasOverlayRef = useRef(null);
-  const hiddenCanvasRef = useRef(null);
-  const streamRef = useRef(null);
-  const animFrameRef = useRef(null);
+  const videoRef          = useRef(null);
+  const canvasOverlayRef  = useRef(null);
+  const hiddenCanvasRef   = useRef(null);
+  const streamRef         = useRef(null);
+  const animFrameRef      = useRef(null);
   const capturedAnglesRef = useRef({});
+  const canvasRef         = useRef(null);
 
-  const [camActive, setCamActive] = useState(false);
-  const [capturedAngles, setCapturedAngles] = useState({});
-  const [currentInstruction, setCurrentInstruction] = useState("Appuyez pour démarrer le scan");
-  const [instructionClass, setInstructionClass] = useState("waiting");
-  const [progress, setProgress] = useState(0);
-  const [scanComplete, setScanComplete] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState({ show: false, msg: "", type: "success" });
+  const [camActive,          setCamActive]          = useState(false);
+  const [capturedAngles,     setCapturedAngles]     = useState({});
+  const [currentInstruction, setCurrentInstruction] = useState("");
+  const [instructionClass,   setInstructionClass]   = useState("waiting");
+  const [progress,           setProgress]           = useState(0);
+  const [scanComplete,       setScanComplete]        = useState(false);
+  const [loading,            setLoading]             = useState(false);
+  const [toast,              setToast]               = useState({ show: false, msg: "", type: "success" });
 
   const [form, setForm] = useState({
-    nom: "", prenom: "", email_academique: "",
-    classe: "", annee_scolaire: ""
+    nom: "", prenom: "", email_academique: "", classe: "", annee_scolaire: ""
   });
 
   const showToast = (msg, type = "success") => {
@@ -40,243 +40,240 @@ export default function RegisterPage() {
     setTimeout(() => setToast(t => ({ ...t, show: false })), 3500);
   };
 
+  // ── Animated background particles ──────────────────────────────
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let raf;
+
+    const resize = () => {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const particles = Array.from({ length: 80 }, () => ({
+      x:     Math.random() * canvas.width,
+      y:     Math.random() * canvas.height,
+      r:     Math.random() * 2 + 0.4,
+      vx:    (Math.random() - 0.5) * 0.35,
+      vy:    (Math.random() - 0.5) * 0.35,
+      alpha: Math.random() * 0.45 + 0.08,
+    }));
+
+    let t = 0;
+    const draw = () => {
+      t += 0.003;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // ── Deep aurora blobs ──
+      const auroras = [
+        { x: 0.15 + Math.sin(t*0.7)*0.08, y: 0.25 + Math.cos(t*0.5)*0.1, r: 0.65, c: "rgba(30,144,255," },
+        { x: 0.82 + Math.cos(t*0.6)*0.07, y: 0.65 + Math.sin(t*0.8)*0.08, r: 0.55, c: "rgba(255,215,0," },
+        { x: 0.5  + Math.sin(t*0.4)*0.12, y: 0.88 + Math.cos(t*0.9)*0.06, r: 0.45, c: "rgba(0,112,224," },
+        { x: 0.7  + Math.cos(t*1.1)*0.06, y: 0.1  + Math.sin(t*0.6)*0.08, r: 0.38, c: "rgba(30,144,255," },
+      ];
+      auroras.forEach(({ x, y, r, c }) => {
+        const g = ctx.createRadialGradient(
+          canvas.width*x, canvas.height*y, 0,
+          canvas.width*x, canvas.height*y, canvas.width*r
+        );
+        g.addColorStop(0, c + "0.22)");
+        g.addColorStop(0.5, c + "0.08)");
+        g.addColorStop(1, c + "0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      });
+
+      // ── Particles ──
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(30,144,255,${p.alpha})`;
+        ctx.fill();
+      });
+
+      // Connect nearby particles
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 100) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(30,144,255,${0.08 * (1 - dist/100)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+  }, []);
+
+  // ── Scan ring ───────────────────────────────────────────────────
   const drawScanRing = useCallback((prog) => {
     const canvas = canvasOverlayRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    const size = canvas.width;
-    const cx = size / 2, cy = size / 2;
-    const radius = size / 2 - 8;
-
+    const size = canvas.width, cx = size/2, cy = size/2, radius = size/2 - 10;
     ctx.clearRect(0, 0, size, size);
 
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-    ctx.strokeStyle = "rgba(0,255,128,0.15)";
-    ctx.lineWidth = 6;
-    ctx.stroke();
+    ctx.arc(cx, cy, radius, 0, 2*Math.PI);
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.lineWidth = 3; ctx.stroke();
 
     if (prog > 0) {
-      const angle = (prog / 100) * 2 * Math.PI - Math.PI / 2;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, -Math.PI / 2, angle);
-      ctx.strokeStyle = "#00ff80";
-      ctx.lineWidth = 6;
-      ctx.lineCap = "round";
-      ctx.stroke();
+      const end = (prog/100) * 2*Math.PI - Math.PI/2;
+      ctx.beginPath(); ctx.arc(cx, cy, radius, -Math.PI/2, end);
+      const grad = ctx.createLinearGradient(0,0,size,size);
+      grad.addColorStop(0, "#1E90FF"); grad.addColorStop(1, "#FFD700");
+      ctx.strokeStyle = grad; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.stroke();
     }
-  }, []);
 
-  const getNextAngle = (captured) => {
-    for (const a of ANGLES) {
-      if (!captured[a.key]) return a.key;
-    }
-    return null;
-  };
+    // Corner brackets
+    const fs = size * 0.52, fx = (size-fs)/2, fy = (size-fs)/2;
+    const cL = 20, cR = 9;
+    const col = prog === 100 ? "#FFD700" : "rgba(30,144,255,0.7)";
+    ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.lineCap = "round";
 
-  const captureFrame = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = hiddenCanvasRef.current;
-    if (!video || !canvas || video.readyState < 2) return null;
-
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-    const ctx = canvas.getContext("2d");
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
+    [[fx,fy,1,1],[fx+fs,fy,-1,1],[fx,fy+fs,1,-1],[fx+fs,fy+fs,-1,-1]].forEach(([ox,oy,sx,sy]) => {
+      ctx.beginPath(); ctx.moveTo(ox + sx*cL, oy + sy*cR);
+      ctx.arcTo(ox + sx*cR, oy + sy*cR, ox + sx*cR, oy + sy*cL, cR);
+      ctx.lineTo(ox + sx*cR, oy + sy*cL); ctx.stroke();
     });
   }, []);
 
-  const getInstructionForAngle = (angle) => {
-    const map = {
-      "face":        "Regardez droit devant",
-      "gauche":      "Tournez à gauche",
-      "droite":      "Tournez à droite",
-      "haut":        "Regardez en haut",
-      "bas":         "Regardez en bas",
-      "diag_gauche": "Tournez en haut à gauche",
-      "diag_droite": "Tournez en haut à droite"
-    };
-    return map[angle] || "";
-  };
+  const getNextAngle = (c) => ANGLES.find(a => !c[a.key])?.key || null;
+
+  const captureFrame = useCallback(() => {
+    const video = videoRef.current, canvas = hiddenCanvasRef.current;
+    if (!video || !canvas || video.readyState < 2) return null;
+    canvas.width = video.videoWidth||640; canvas.height = video.videoHeight||480;
+    const ctx = canvas.getContext("2d");
+    ctx.translate(canvas.width,0); ctx.scale(-1,1);
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    return new Promise(r => canvas.toBlob(b => r(b), "image/jpeg", 0.85));
+  }, []);
+
+  const getInstructionForAngle = (a) => ({
+    face:"Regardez droit devant", gauche:"Tournez la tête à gauche",
+    droite:"Tournez la tête à droite", haut:"Regardez vers le haut",
+    bas:"Regardez vers le bas", diag_gauche:"Tournez en haut à gauche",
+    diag_droite:"Tournez en haut à droite"
+  })[a] || "";
 
   const startScanLoop = useCallback(() => {
-    let lastSentTime = 0;
-    const SCAN_INTERVAL = 600; // ✅ réduit de 1500ms à 600ms
-
+    let last = 0;
     const loop = async () => {
       if (!streamRef.current) return;
-
       const now = Date.now();
-      if (now - lastSentTime < SCAN_INTERVAL) {
-        animFrameRef.current = requestAnimationFrame(loop);
-        return;
-      }
-      lastSentTime = now;
-
+      if (now - last < 600) { animFrameRef.current = requestAnimationFrame(loop); return; }
+      last = now;
       const blob = await captureFrame();
-      if (!blob) {
-        animFrameRef.current = requestAnimationFrame(loop);
-        return;
-      }
-
+      if (!blob) { animFrameRef.current = requestAnimationFrame(loop); return; }
       try {
-        const formData = new FormData();
-        formData.append("image", blob, "frame.jpg");
-
-        const res = await fetch("http://localhost:8000/api/students/scan-angle", {
-          method: "POST",
-          body: formData,
-        });
-
+        const fd = new FormData(); fd.append("image", blob, "frame.jpg");
+        const res = await fetch("http://localhost:8000/api/students/scan-angle", { method:"POST", body:fd });
         if (res.ok) {
-          const data = await res.json();
-          const detectedAngle = data.angle;
-          const current = capturedAnglesRef.current;
-
-          if (detectedAngle && !current[detectedAngle]) {
-            const updated = { ...current, [detectedAngle]: blob };
+          const { angle: det } = await res.json();
+          const cur = capturedAnglesRef.current;
+          if (det && !cur[det]) {
+            const updated = {...cur, [det]: blob};
             capturedAnglesRef.current = updated;
-            setCapturedAngles({ ...updated });
-
-            const newProgress = (Object.keys(updated).length / ANGLES.length) * 100;
-            setProgress(newProgress);
-            drawScanRing(newProgress);
-
-            setCurrentInstruction(`✓ ${ANGLES.find(a => a.key === detectedAngle)?.label} capturé !`);
+            setCapturedAngles({...updated});
+            const prog = (Object.keys(updated).length / ANGLES.length) * 100;
+            setProgress(prog); drawScanRing(prog);
+            setCurrentInstruction(`✓ ${ANGLES.find(a=>a.key===det)?.label} capturé`);
             setInstructionClass("success");
-
             if (Object.keys(updated).length >= ANGLES.length) {
-              setScanComplete(true);
-              setCurrentInstruction("✅ Scan complet ! Cliquez sur Créer mon compte.");
-              setInstructionClass("success");
-              if (streamRef.current) {
-                streamRef.current.getTracks().forEach(t => t.stop());
-                streamRef.current = null;
-              }
-              setCamActive(false);
-              return;
+              setScanComplete(true); setCurrentInstruction("Scan terminé avec succès");
+              streamRef.current?.getTracks().forEach(t=>t.stop()); streamRef.current=null;
+              setCamActive(false); return;
             }
-
             setTimeout(() => {
               const next = getNextAngle(updated);
-              if (next) {
-                setCurrentInstruction(getInstructionForAngle(next));
-                setInstructionClass("");
-              }
-            }, 800);
+              if (next) { setCurrentInstruction(getInstructionForAngle(next)); setInstructionClass(""); }
+            }, 700);
           }
         }
-      } catch (e) {
-        console.error(e);
-      }
-
+      } catch(e) { console.error(e); }
       animFrameRef.current = requestAnimationFrame(loop);
     };
-
     animFrameRef.current = requestAnimationFrame(loop);
   }, [captureFrame, drawScanRing]);
 
-  // ✅ FIX PRINCIPAL : on démarre la caméra, puis useEffect attend que
-  // React ait monté la <video> avant d'assigner le stream
   const startCamera = async () => {
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      const s = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user" } });
       streamRef.current = s;
-
       capturedAnglesRef.current = {};
-      setCapturedAngles({});
-      setProgress(0);
-      setScanComplete(false);
-      setCamActive(true); // déclenche le re-render qui monte la <video>
-      setCurrentInstruction("😐 Regardez droit devant pour commencer");
-      setInstructionClass("");
-    } catch {
-      setCurrentInstruction("Accès caméra refusé !");
-      setInstructionClass("waiting");
-    }
+      setCapturedAngles({}); setProgress(0); setScanComplete(false); setCamActive(true);
+      setCurrentInstruction("Regardez droit devant"); setInstructionClass("");
+    } catch { setCurrentInstruction("Accès caméra refusé"); setInstructionClass("waiting"); }
   };
 
-  // ✅ Assigne le stream APRÈS que la <video> soit montée dans le DOM
   useEffect(() => {
     if (camActive && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
-      drawScanRing(0);
-      startScanLoop();
+      videoRef.current.play().catch(()=>{});
+      drawScanRing(0); startScanLoop();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line
   }, [camActive]);
 
   const restartScan = () => {
-    if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+    streamRef.current?.getTracks().forEach(t=>t.stop());
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     capturedAnglesRef.current = {};
-    setCamActive(false);
-    setCapturedAngles({});
-    setProgress(0);
-    setScanComplete(false);
-    setCurrentInstruction("Appuyez pour démarrer le scan");
-    setInstructionClass("waiting");
+    setCamActive(false); setCapturedAngles({}); setProgress(0);
+    setScanComplete(false); setCurrentInstruction(""); setInstructionClass("waiting");
     drawScanRing(0);
   };
 
-  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const handleChange = e => setForm(f=>({...f,[e.target.name]:e.target.value}));
 
   const handleSubmit = async () => {
-    const { nom, prenom, email_academique, classe, annee_scolaire } = form;
-
-    if (!nom || !prenom || !email_academique || !classe || !annee_scolaire) {
-      showToast("Veuillez remplir tous les champs.", "error");
-      return;
-    }
-    if (!scanComplete) {
-      showToast("Veuillez compléter le scan du visage.", "error");
-      return;
-    }
-
+    const {nom,prenom,email_academique,classe,annee_scolaire} = form;
+    if (!nom||!prenom||!email_academique||!classe||!annee_scolaire)
+      return showToast("Veuillez remplir tous les champs.","error");
+    if (!scanComplete) return showToast("Veuillez compléter le scan.","error");
     setLoading(true);
-    const captured = capturedAnglesRef.current;
-
     const fd = new FormData();
-    fd.append("nom", nom);
-    fd.append("prenom", prenom);
-    fd.append("email_academique", email_academique);
-    fd.append("classe", classe);
-    fd.append("annee_scolaire", annee_scolaire);
-    ANGLES.forEach(a => fd.append(`image_${a.key}`, captured[a.key], `${a.key}.jpg`));
-
+    Object.entries({nom,prenom,email_academique,classe,annee_scolaire}).forEach(([k,v])=>fd.append(k,v));
+    ANGLES.forEach(a=>fd.append(`image_${a.key}`,capturedAnglesRef.current[a.key],`${a.key}.jpg`));
     try {
-      const res = await fetch("http://localhost:8000/api/students/inscrire-complet", {
-        method: "POST",
-        body: fd,
-      });
+      const res = await fetch("http://localhost:8000/api/students/inscrire-complet",{method:"POST",body:fd});
       const data = await res.json();
-
       if (res.ok) {
-        showToast(`✓ ${data.message}`, "success");
-        setForm({ nom: "", prenom: "", email_academique: "", classe: "", annee_scolaire: "" });
+        showToast(`✓ ${data.message}`,"success");
+        setForm({nom:"",prenom:"",email_academique:"",classe:"",annee_scolaire:""});
         restartScan();
-      } else {
-        showToast(data.detail || "Erreur lors de l'inscription.", "error");
-      }
-    } catch {
-      showToast("Impossible de contacter le serveur.", "error");
-    } finally {
-      setLoading(false);
-    }
+      } else showToast(data.detail||"Erreur inscription.","error");
+    } catch { showToast("Impossible de contacter le serveur.","error"); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
-    const canvas = canvasOverlayRef.current;
-    if (canvas) { canvas.width = 256; canvas.height = 256; }
+    const c = canvasOverlayRef.current;
+    if (c) { c.width=280; c.height=280; }
     drawScanRing(0);
     return () => {
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current?.getTracks().forEach(t=>t.stop());
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, [drawScanRing]);
@@ -286,343 +283,348 @@ export default function RegisterPage() {
   return (
     <>
       <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-          background: #0d1b2a;
-          color: #e0e0e0;
-          font-family: 'Segoe UI', sans-serif;
+          background: #080c18;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          color: #e2e8f0;
+          overflow-x: hidden;
+        }
+
+        /* ── Animated canvas background ── */
+        .bg-canvas {
+          position: fixed; inset: 0; z-index: 0;
+          pointer-events: none;
+          background: linear-gradient(135deg, #080c18 0%, #0d1224 50%, #080e1c 100%);
         }
 
         .page-bg {
+          position: relative; z-index: 1;
           min-height: 100vh;
-          background: #0d1b2a;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: flex-start;
-          padding: 32px 16px 48px;
+          display: flex; flex-direction: column; align-items: center;
+          padding: 0 16px 60px;
         }
 
-        .portal-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          background: rgba(0,255,128,0.08);
-          border: 1px solid rgba(0,255,128,0.3);
-          border-radius: 999px;
-          padding: 5px 18px;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 2px;
-          color: #00ff80;
-          text-transform: uppercase;
-          margin-bottom: 20px;
-        }
-        .portal-badge::before {
-          content: '';
-          width: 8px; height: 8px;
-          border-radius: 50%;
-          background: #00ff80;
-          box-shadow: 0 0 6px #00ff80;
-        }
-
-        .page-title {
-          font-size: 32px;
-          font-weight: 800;
-          color: #ffffff;
+        /* ── HERO HEADER ────────────────────────────── */
+        .hero {
+          width: 100%; max-width: 520px;
           text-align: center;
-          line-height: 1.2;
-          margin-bottom: 6px;
-        }
-        .page-title span { color: #00ff80; }
-
-        .page-subtitle {
-          font-size: 14px;
-          color: #6b7a8d;
-          text-align: center;
-          margin-bottom: 28px;
+          padding: 32px 0 24px;
+          position: relative;
         }
 
+        .hero-icon-wrap {
+          position: relative; display: inline-block; margin-bottom: 18px;
+        }
+        .hero-icon-halo {
+          position: absolute; inset: -28px;
+          background: radial-gradient(circle, rgba(30,144,255,0.35) 0%, transparent 70%);
+          border-radius: 50%; animation: haloPulse 3s ease-in-out infinite;
+          pointer-events: none;
+        }
+        @keyframes haloPulse {
+          0%,100% { opacity: 0.6; transform: scale(1); }
+          50%      { opacity: 1;   transform: scale(1.2); }
+        }
+
+        .hero-icon {
+          position: relative;
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 72px; height: 72px;
+          background: linear-gradient(145deg, #1E90FF 0%, #0060cc 55%, #0040aa 100%);
+          border-radius: 22px;
+          box-shadow:
+            0 0 0 1px rgba(255,255,255,0.12),
+            0 8px 32px rgba(30,144,255,0.55),
+            0 24px 64px rgba(30,144,255,0.28),
+            inset 0 1px 0 rgba(255,255,255,0.2);
+          animation: iconFloat 4s ease-in-out infinite;
+          overflow: hidden;
+        }
+          box-shadow:
+            0 0 0 1px rgba(255,255,255,0.12),
+            0 8px 32px rgba(108,99,255,0.55),
+            0 24px 64px rgba(108,99,255,0.28),
+            inset 0 1px 0 rgba(255,255,255,0.2);
+          animation: iconFloat 4s ease-in-out infinite;
+        }
+        @keyframes iconFloat {
+          0%,100% { transform: translateY(0px); }
+          50%      { transform: translateY(-8px); }
+        }
+
+        .hero-title {
+          font-family: 'Outfit', sans-serif;
+          font-size: 30px; font-weight: 800;
+          line-height: 1.15; margin-bottom: 10px;
+          letter-spacing: -0.8px;
+          animation: fadeUp 0.6s ease both;
+        }
+        .hero-title .line1 {
+          color: #ffffff; display: block;
+          text-shadow: 0 2px 40px rgba(108,99,255,0.35);
+        }
+
+        .hero-tagline {
+          font-size: 13px; font-weight: 400;
+          color: #5a6480; line-height: 1.6;
+          white-space: normal;
+          animation: fadeUp 0.75s ease both;
+          padding: 0 4px;
+        }
+        .hero-tagline strong {
+          background: linear-gradient(90deg, #1E90FF, #FFD700);
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+          font-weight: 600;
+        }
+
+        .hero-line {
+          width: 40px; height: 2px;
+          background: linear-gradient(90deg, transparent, #1E90FF, #FFD700, transparent);
+          border-radius: 99px; margin: 14px auto 0;
+          animation: fadeUp 0.9s ease both;
+        }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(24px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── CARD ────────────────────────────────────── */
         .card {
-          width: 100%;
-          max-width: 480px;
-          background: #111e2e;
-          border: 1px solid rgba(0,255,128,0.12);
-          border-radius: 18px;
-          padding: 28px 24px;
+          width: 100%; max-width: 460px;
+          background: rgba(15, 20, 35, 0.85);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 24px;
+          padding: 32px 28px;
+          box-shadow: 0 32px 80px rgba(0,0,0,0.5),
+                      0 0 0 1px rgba(30,144,255,0.08),
+                      inset 0 1px 0 rgba(255,255,255,0.05);
+          animation: fadeUp 1.2s ease both;
         }
 
         .section-label {
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 2.5px;
-          color: #00ff80;
-          text-transform: uppercase;
-          margin-bottom: 16px;
+          font-size: 9px; font-weight: 700;
+          letter-spacing: 3px; color: #1E90FF;
+          text-transform: uppercase; margin-bottom: 18px;
+          display: flex; align-items: center; gap: 8px;
+        }
+        .section-label::after {
+          content: ''; flex: 1; height: 1px;
+          background: linear-gradient(90deg, rgba(30,144,255,0.3), transparent);
         }
 
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          margin-bottom: 12px;
-        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+        .form-group { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
         .form-group label {
-          font-size: 12px;
-          color: #8899aa;
-          font-weight: 500;
+          font-size: 11px; color: #475569; font-weight: 600;
+          letter-spacing: 0.5px; text-transform: uppercase;
         }
+
         .form-input, .form-select {
-          background: #0d1b2a;
-          border: 1px solid rgba(0,255,128,0.15);
-          border-radius: 8px;
-          padding: 10px 14px;
-          color: #c0d0e0;
-          font-size: 14px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 10px; padding: 11px 14px;
+          color: #e2e8f0; font-size: 14px; font-family: inherit;
           outline: none;
-          transition: border-color 0.2s;
-          width: 100%;
-          appearance: none;
-          -webkit-appearance: none;
+          transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+          width: 100%; appearance: none; -webkit-appearance: none;
         }
-        .form-input::placeholder { color: #3a4a5a; }
+        .form-input::placeholder { color: #334155; }
         .form-input:focus, .form-select:focus {
-          border-color: rgba(0,255,128,0.5);
+          border-color: rgba(30,144,255,0.5);
+          background: rgba(30,144,255,0.05);
+          box-shadow: 0 0 0 3px rgba(30,144,255,0.08);
         }
         .select-wrapper { position: relative; }
         .select-wrapper::after {
-          content: '▾';
-          position: absolute;
-          right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #00ff80;
-          pointer-events: none;
-          font-size: 13px;
+          content: '▾'; position: absolute; right: 12px; top: 50%;
+          transform: translateY(-50%); color: #1E90FF; pointer-events: none; font-size: 12px;
         }
-        .form-select option { background: #111e2e; }
+        .form-select option { background: #0f1423; color: #e2e8f0; }
 
         .divider {
-          border: none;
-          border-top: 1px solid rgba(0,255,128,0.08);
-          margin: 20px 0;
+          border: none; margin: 24px 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
         }
 
+        /* ── FACE SCAN ─────────────────────────────────── */
         .face-scan-wrapper {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 14px;
+          display: flex; flex-direction: column; align-items: center; gap: 18px;
         }
 
-        /* ✅ Camera container: position relative, tout en absolute dedans */
         .cam-container {
           position: relative;
-          width: 256px;
-          height: 256px;
-          border-radius: 14px;
-          overflow: hidden;
-          background: #0a1520;
-          border: 1px solid rgba(0,255,128,0.12);
+          width: min(280px, 80vw); height: min(280px, 80vw);
+          border-radius: 50%; overflow: hidden;
+          background: #050810;
+          box-shadow: 0 0 0 3px rgba(30,144,255,0.2),
+                      0 0 0 6px rgba(30,144,255,0.07),
+                      0 0 60px rgba(30,144,255,0.2),
+                      0 20px 60px rgba(0,0,0,0.5);
         }
-
-        /* ✅ Vidéo: absolute, z-index 1, visible */
         .cam-video {
-          position: absolute;
-          top: 0; left: 0;
-          width: 100%; height: 100%;
-          object-fit: cover;
-          transform: scaleX(-1);
-          z-index: 1;
-          display: block;
-          background: transparent;
+          position: absolute; inset: 0; width: 100%; height: 100%;
+          object-fit: cover; transform: scaleX(-1); z-index: 1;
         }
-
-        /* ✅ Canvas: au-dessus de la vidéo, transparent */
         .cam-overlay-canvas {
-          position: absolute;
-          top: 0; left: 0;
-          width: 100%; height: 100%;
-          z-index: 2;
-          pointer-events: none;
-          background: transparent;
+          position: absolute; inset: 0; width: 100%; height: 100%;
+          z-index: 2; pointer-events: none;
         }
-
-        /* ✅ Écran inactif: en dessous du canvas */
         .cam-inactive {
-          position: absolute;
-          top: 0; left: 0;
-          width: 100%; height: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          background: #0a1e12;
-          z-index: 1;
+          position: absolute; inset: 0;
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 14px; z-index: 1;
+          background: radial-gradient(circle at 50% 40%, #0d1535 0%, #050810 100%);
         }
-        .cam-inactive-icon { font-size: 42px; opacity: 0.6; }
+        .faceid-icon { width: 52px; height: 52px; }
         .cam-inactive-text {
-          font-size: 11px;
-          letter-spacing: 2px;
-          color: rgba(0,255,128,0.5);
-          text-transform: uppercase;
+          font-size: 9px; letter-spacing: 3.5px; color: #4a5568;
+          text-transform: uppercase; font-weight: 700; font-family: 'Outfit', sans-serif;
         }
 
-        .angle-dots {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-        .angle-dot {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 3px;
-          font-size: 10px;
-          color: #3a5a4a;
-          transition: color 0.3s;
-        }
-        .angle-dot.done { color: #00ff80; }
-        .dot-circle {
-          width: 28px; height: 28px;
-          border-radius: 50%;
-          border: 1.5px solid #1a3a2a;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 14px;
-          background: #0a1a12;
-          transition: all 0.3s;
-        }
-        .angle-dot.done .dot-circle {
-          border-color: #00ff80;
-          background: rgba(0,255,128,0.1);
-          box-shadow: 0 0 8px rgba(0,255,128,0.3);
-        }
-
-        .instruction-text {
-          font-size: 13px;
-          color: #8899aa;
+        /* Instruction overlay */
+        .cam-instruction-overlay {
+          position: absolute; bottom: 0; left: 0; right: 0; z-index: 3;
+          padding: 18px 16px;
+          background: linear-gradient(to top, rgba(5,8,16,0.85) 0%, transparent 100%);
           text-align: center;
-          min-height: 20px;
-          transition: color 0.3s;
         }
-        .instruction-text.success { color: #00ff80; }
-        .instruction-text.waiting { color: #4a6a5a; }
+        .cam-instruction-text {
+          font-size: 13px; font-weight: 600; color: #e2e8f0;
+          text-shadow: 0 1px 6px rgba(0,0,0,0.8); letter-spacing: 0.2px;
+          font-family: 'Outfit', sans-serif;
+        }
+        .cam-instruction-text.success { color: #67e8f9; }
 
-        .progress-bar-bg {
-          width: 100%;
-          height: 4px;
-          background: #1a2a1a;
-          border-radius: 99px;
-          overflow: hidden;
+        /* Progress */
+        .progress-track {
+          width: min(280px, 80vw); height: 2px;
+          background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden;
         }
-        .progress-bar-fill {
+        .progress-fill {
           height: 100%;
-          background: #00ff80;
-          border-radius: 99px;
-          transition: width 0.4s ease;
-          box-shadow: 0 0 8px rgba(0,255,128,0.5);
+          background: linear-gradient(90deg, #1E90FF, #FFD700);
+          border-radius: 99px; transition: width 0.5s cubic-bezier(.4,0,.2,1);
+          box-shadow: 0 0 12px rgba(30,144,255,0.5);
         }
-        .progress-label {
-          font-size: 11px;
-          color: #4a7a5a;
-          text-align: center;
+        .progress-count {
+          font-size: 11px; color: #334155; font-weight: 600;
+          letter-spacing: 1px; font-family: 'Outfit', sans-serif;
         }
+        .progress-count span { color: #1E90FF; }
 
+        /* Buttons */
         .btn-scan {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: transparent;
-          border: 1.5px solid #00ff80;
-          border-radius: 999px;
-          padding: 9px 24px;
-          color: #00ff80;
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          letter-spacing: 1px;
-          transition: background 0.2s, box-shadow 0.2s;
+          display: inline-flex; align-items: center; gap: 10px;
+          background: linear-gradient(135deg, #1E90FF 0%, #0070e0 60%, #FFD700 100%);
+          background-size: 200% auto;
+          border: none; border-radius: 999px; padding: 12px 30px;
+          color: #fff; font-size: 13px; font-weight: 700;
+          cursor: pointer; font-family: 'Outfit', sans-serif; letter-spacing: 0.5px;
+          box-shadow: 0 4px 24px rgba(30,144,255,0.4);
+          transition: background-position 0.4s, box-shadow 0.2s, transform 0.15s;
         }
         .btn-scan:hover {
-          background: rgba(0,255,128,0.08);
-          box-shadow: 0 0 14px rgba(0,255,128,0.2);
+          background-position: right center;
+          box-shadow: 0 6px 32px rgba(30,144,255,0.5);
+          transform: translateY(-1px);
         }
 
         .btn-restart {
-          background: transparent;
-          border: 1px solid #1a3a2a;
-          border-radius: 8px;
-          padding: 6px 14px;
-          color: #4a7a5a;
-          font-size: 12px;
-          cursor: pointer;
-          transition: border-color 0.2s, color 0.2s;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 8px; padding: 7px 18px;
+          color: #475569; font-size: 12px; cursor: pointer;
+          font-family: inherit; transition: all 0.2s; letter-spacing: 0.3px;
         }
-        .btn-restart:hover {
-          border-color: #00ff80;
-          color: #00ff80;
-        }
+        .btn-restart:hover { border-color: rgba(30,144,255,0.4); color: #1E90FF; }
 
         .btn-submit {
-          width: 100%;
-          padding: 15px;
-          background: #00ff80;
-          border: none;
-          border-radius: 10px;
-          color: #0a1a10;
-          font-size: 16px;
-          font-weight: 700;
-          cursor: pointer;
-          margin-top: 22px;
-          letter-spacing: 0.5px;
-          transition: opacity 0.2s, box-shadow 0.2s;
-          box-shadow: 0 0 20px rgba(0,255,128,0.25);
+          width: 100%; padding: 14px;
+          background: linear-gradient(135deg, #1E90FF 0%, #0070e0 60%, #FFD700 100%);
+          background-size: 200% auto;
+          border: none; border-radius: 14px; color: #fff;
+          font-size: 15px; font-weight: 700; cursor: pointer;
+          margin-top: 24px; font-family: 'Outfit', sans-serif; letter-spacing: 0.3px;
+          box-shadow: 0 4px 24px rgba(30,144,255,0.35);
+          transition: background-position 0.4s, box-shadow 0.2s, transform 0.15s, opacity 0.2s;
         }
         .btn-submit:hover:not(:disabled) {
-          opacity: 0.9;
-          box-shadow: 0 0 30px rgba(0,255,128,0.4);
+          background-position: right center;
+          box-shadow: 0 8px 36px rgba(30,144,255,0.5);
+          transform: translateY(-1px);
         }
-        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-submit:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
 
+        /* Toast */
         .toast {
-          position: fixed;
-          bottom: 28px;
-          left: 50%;
+          position: fixed; bottom: 32px; left: 50%;
           transform: translateX(-50%) translateY(80px);
-          background: #111e2e;
-          border: 1px solid rgba(0,255,128,0.3);
-          border-radius: 10px;
-          padding: 12px 24px;
-          font-size: 14px;
-          color: #00ff80;
+          background: rgba(15,20,35,0.95);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(30,144,255,0.35);
+          border-radius: 14px; padding: 13px 26px;
+          font-size: 13px; color: #1E90FF; font-weight: 600;
           z-index: 9999;
           transition: transform 0.35s cubic-bezier(.2,.8,.3,1), opacity 0.35s;
-          opacity: 0;
-          white-space: nowrap;
+          opacity: 0; white-space: nowrap; font-family: 'Outfit', sans-serif;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.5);
         }
         .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-        .toast.error { border-color: rgba(255,80,80,0.4); color: #ff6060; }
+        .toast.error { border-color: rgba(239,68,68,0.3); color: #f87171; }
 
         .hidden-canvas { display: none; }
+
+        /* ── MOBILE ── */
+        @media (max-width: 480px) {
+          .hero { padding: 24px 0 18px; }
+          .hero-title { font-size: 24px; }
+          .hero-tagline { font-size: 12px; }
+          .card { padding: 22px 16px; border-radius: 18px; }
+          .form-row { grid-template-columns: 1fr; gap: 0; }
+          .btn-scan { padding: 11px 22px; font-size: 12px; }
+          .btn-submit { font-size: 14px; padding: 13px; }
+          .hero-icon { width: 58px; height: 58px; border-radius: 17px; }
+        }
       `}</style>
+
+      {/* Animated background */}
+      <canvas ref={canvasRef} className="bg-canvas" />
 
       <div className="page-bg">
 
-        <div className="portal-badge">Portail Étudiant</div>
-        <h1 className="page-title">
-          Créer votre<br /><span>compte étudiant</span>
-        </h1>
-        <p className="page-subtitle">Formulaire d'inscription avec vérification faciale</p>
+        {/* ── HERO ── */}
+        <div className="hero">
+          <div className="hero-icon-wrap">
+            <div className="hero-icon-halo" />
+            <div className="hero-icon">
+              <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
+                <path d="M19 9L4 17l15 8 15-8-15-8z" fill="#FFD700"/>
+                <path d="M10 21v8c0 0 3 6 9 6s9-6 9-6v-8" stroke="rgba(255,255,255,0.85)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <line x1="34" y1="17" x2="34" y2="26" stroke="rgba(255,255,255,0.65)" strokeWidth="2.2" strokeLinecap="round"/>
+                <circle cx="34" cy="27.5" r="2" fill="rgba(255,255,255,0.65)"/>
+              </svg>
+            </div>
+          </div>
 
+          <h1 className="hero-title">
+            <span className="line1">ESISA Portail Étudiant</span>
+          </h1>
+
+          <p className="hero-tagline">
+            Votre avenir commence ici — <strong>inscrivez-vous et rejoignez l'élite.</strong>
+          </p>
+
+          <div className="hero-line" />
+        </div>
+
+        {/* ── CARD ── */}
         <div className="card">
 
           <div className="section-label">Informations personnelles</div>
@@ -641,9 +643,10 @@ export default function RegisterPage() {
           </div>
 
           <div className="form-group">
-            <label>Adresse e-mail</label>
+            <label>Adresse e-mail académique</label>
             <input className="form-input" name="email_academique" type="email"
-              placeholder="etudiant@univ.dz" value={form.email_academique} onChange={handleChange} />
+              placeholder="etudiant@esisa.ac.ma"
+              value={form.email_academique} onChange={handleChange} />
           </div>
 
           <div className="form-row">
@@ -658,7 +661,7 @@ export default function RegisterPage() {
               </div>
             </div>
             <div className="form-group">
-              <label>Groupe</label>
+              <label>Classe</label>
               <div className="select-wrapper">
                 <select className="form-select" name="classe"
                   value={form.classe} onChange={handleChange}>
@@ -669,7 +672,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <hr className="divider" />
+          <div className="divider" />
 
           <div className="section-label">Reconnaissance faciale</div>
 
@@ -678,60 +681,64 @@ export default function RegisterPage() {
             <div className="cam-container">
               {camActive ? (
                 <>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="cam-video"
-                  />
-                  <canvas
-                    ref={canvasOverlayRef}
-                    className="cam-overlay-canvas"
-                    width={256}
-                    height={256}
-                  />
+                  <video ref={videoRef} autoPlay muted playsInline className="cam-video" />
+                  <canvas ref={canvasOverlayRef} className="cam-overlay-canvas" width={280} height={280} />
+                  <div className="cam-instruction-overlay">
+                    <span className={`cam-instruction-text ${instructionClass}`}>
+                      {currentInstruction}
+                    </span>
+                  </div>
                 </>
               ) : (
                 <>
                   <div className="cam-inactive">
-                    <div className="cam-inactive-icon">{scanComplete ? "✅" : "🙂"}</div>
-                    <div className="cam-inactive-text">
-                      {scanComplete ? "Scan terminé" : "Caméra inactive"}
-                    </div>
+                    <svg className="faceid-icon" viewBox="0 0 52 52" fill="none">
+                      <path d="M4 15V9a5 5 0 015-5h6M37 4h6a5 5 0 015 5v6M48 37v6a5 5 0 01-5 5h-6M15 48H9a5 5 0 01-5-5v-6"
+                        stroke="url(#g1)" strokeWidth="2.5" strokeLinecap="round"/>
+                      <circle cx="19" cy="22" r="3" fill="url(#g1)" opacity="0.8"/>
+                      <circle cx="33" cy="22" r="3" fill="url(#g1)" opacity="0.8"/>
+                      <path d="M19 34s2.5 5 7 5 7-5 7-5" stroke="url(#g2)" strokeWidth="2.5" strokeLinecap="round"/>
+                      <path d="M26 22v7" stroke="url(#g1)" strokeWidth="2" strokeLinecap="round"/>
+                      <defs>
+                        <linearGradient id="g1" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+                          <stop stopColor="#1E90FF"/><stop offset="1" stopColor="#0070e0"/>
+                        </linearGradient>
+                        <linearGradient id="g2" x1="0" y1="0" x2="52" y2="0" gradientUnits="userSpaceOnUse">
+                          <stop stopColor="#1E90FF"/><stop offset="1" stopColor="#FFD700"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <div className="cam-inactive-text">{scanComplete ? "Scan terminé" : "Face ID"}</div>
                   </div>
-                  <canvas
-                    ref={canvasOverlayRef}
-                    className="cam-overlay-canvas"
-                    width={256}
-                    height={256}
-                  />
+                  <canvas ref={canvasOverlayRef} className="cam-overlay-canvas" width={280} height={280} />
+                  {scanComplete && (
+                    <div className="cam-instruction-overlay">
+                      <span className="cam-instruction-text success">✓ Identité enregistrée</span>
+                    </div>
+                  )}
                 </>
               )}
             </div>
 
-            <div className="angle-dots">
-              {ANGLES.map(a => (
-                <div key={a.key} className={`angle-dot${capturedAngles[a.key] ? " done" : ""}`}>
-                  <div className="dot-circle">{a.icon}</div>
-                  <span>{a.label}</span>
-                </div>
-              ))}
-            </div>
-
             {(camActive || completedCount > 0) && (
               <>
-                <div className="progress-bar-bg" style={{ width: "100%" }}>
-                  <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: `${progress}%` }} />
                 </div>
-                <div className="progress-label">{completedCount} / {ANGLES.length} angles capturés</div>
+                <div className="progress-count">
+                  <span>{completedCount}</span> / {ANGLES.length} angles capturés
+                </div>
               </>
             )}
 
-            <p className={`instruction-text ${instructionClass}`}>{currentInstruction}</p>
-
             {!camActive && !scanComplete && (
-              <button className="btn-scan" onClick={startCamera}>▶ Activer Face ID</button>
+              <button className="btn-scan" onClick={startCamera}>
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                  <circle cx="7.5" cy="7.5" r="6.5" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5"/>
+                  <circle cx="7.5" cy="7.5" r="3" fill="#fff"/>
+                </svg>
+                Activer Face ID
+              </button>
             )}
             {(camActive || scanComplete) && (
               <button className="btn-restart" onClick={restartScan}>↺ Recommencer</button>
@@ -739,18 +746,14 @@ export default function RegisterPage() {
 
           </div>
 
-          <button
-            className="btn-submit"
-            onClick={handleSubmit}
-            disabled={loading || !scanComplete}
-          >
+          <button className="btn-submit" onClick={handleSubmit} disabled={loading || !scanComplete}>
             {loading ? "Inscription en cours..." : "Créer mon compte →"}
           </button>
 
         </div>
       </div>
 
-      <div className={`toast${toast.show ? " show" : ""}${toast.type === "error" ? " error" : ""}`}>
+      <div className={`toast${toast.show?" show":""}${toast.type==="error"?" error":""}`}>
         {toast.msg}
       </div>
 
