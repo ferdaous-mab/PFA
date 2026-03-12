@@ -24,7 +24,6 @@ ANGLE_INSTRUCTIONS = {
 }
 
 
-# ── Session DB ────────────────────────────────────────────────────────────────
 def get_db():
     db = SessionLocal()
     try:
@@ -33,7 +32,6 @@ def get_db():
         db.close()
 
 
-# ── Route : angles requis ─────────────────────────────────────────────────────
 @router.get("/angles-requis")
 def get_angles_requis():
     return {
@@ -43,11 +41,10 @@ def get_angles_requis():
     }
 
 
-# ── Route : scanner un angle ──────────────────────────────────────────────────
 @router.post("/scan-angle")
 async def scan_angle(image: UploadFile = File(...)):
     image_bytes = await image.read()
-    result = detect_face_angle(image_bytes)
+    result      = detect_face_angle(image_bytes)
     return {
         "detected":    result["detected"],
         "angle":       result.get("angle"),
@@ -57,7 +54,6 @@ async def scan_angle(image: UploadFile = File(...)):
     }
 
 
-# ── Route : inscription complète ──────────────────────────────────────────────
 @router.post("/inscrire-complet")
 async def inscrire_etudiant_complet(
     nom:               str        = Form(...),
@@ -89,53 +85,45 @@ async def inscrire_etudiant_complet(
         "diag_droite": await image_diag_droite.read(),
     }
 
-    # 3. Générer les embeddings ArcFace + crop du visage pour chaque angle
+    # 3. Générer les embeddings ArcFace
     encodings = []
-    crops     = {}  # { angle: jpeg_bytes }
-
     for angle_name, img_bytes in images.items():
-        # Embedding ArcFace
         try:
             encoding = generate_encoding_for_angle(img_bytes)
             encodings.append(encoding)
             print(f"✅ Angle {angle_name} encodé")
         except Exception as e:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Erreur encoding angle '{angle_name}': {str(e)}"
-            )
+            raise HTTPException(status_code=400,
+                                detail=f"Erreur encoding '{angle_name}': {str(e)}")
 
-        # Crop du visage (ne bloque pas si échoue)
-        crop = crop_face(img_bytes)
-        if crop:
-            crops[angle_name] = crop
-            print(f"📸 Crop visage '{angle_name}' : {len(crop)} bytes")
-        else:
-            print(f"⚠️ Crop échoué pour '{angle_name}' — ignoré")
-
-    # 4. Encoding final (moyenne des 7)
-    final_encoding_bytes = compute_final_encoding(encodings)
-    print(f"✅ Encoding final calculé ({len(encodings)} angles)")
-
-    # 5. Sauvegarder l'étudiant
+    # 4. Sauvegarder l'étudiant d'abord pour obtenir l'ID
     nouvel_etudiant = Student(
         nom=nom,
         prenom=prenom,
         email_academique=email_academique,
         classe=classe,
         annee_scolaire=annee_scolaire,
-        face_encoding=final_encoding_bytes
+        face_encoding="pending",   # temporaire, mis à jour après flush
     )
     db.add(nouvel_etudiant)
-    db.flush()  # Pour obtenir l'ID avant le commit
+    db.flush()  # Obtenir l'ID
 
-    # 6. Sauvegarder les crops dans student_face_images
-    for angle_name, jpeg_bytes in crops.items():
-        db.add(StudentFaceImage(
-            student_id=nouvel_etudiant.id,
-            angle=angle_name,
-            image_data=jpeg_bytes,
-        ))
+    # 5. Encoding final → fichier .npy nommé avec l'ID
+    encoding_path = compute_final_encoding(encodings, student_id=nouvel_etudiant.id)
+    nouvel_etudiant.face_encoding = encoding_path  # mettre à jour avec le vrai chemin
+    print(f"✅ Encoding sauvegardé : {encoding_path}")
+
+    # 6. Crop + sauvegarde des images
+    photos_sauvees = 0
+    for angle_name, img_bytes in images.items():
+        path = crop_face(img_bytes, student_id=nouvel_etudiant.id, angle=angle_name)
+        if path:
+            db.add(StudentFaceImage(
+                student_id=nouvel_etudiant.id,
+                angle=angle_name,
+                image_path=path,
+            ))
+            photos_sauvees += 1
 
     db.commit()
     db.refresh(nouvel_etudiant)
@@ -145,6 +133,6 @@ async def inscrire_etudiant_complet(
         "etudiant_id":     nouvel_etudiant.id,
         "nom":             nouvel_etudiant.nom,
         "prenom":          nouvel_etudiant.prenom,
-        "angles_captures": len(encodings),
-        "photos_sauvées":  len(crops),
+        "encoding_path":   encoding_path,
+        "photos_sauvees":  photos_sauvees,
     }

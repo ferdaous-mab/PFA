@@ -2,13 +2,18 @@ import os
 import io
 import cv2
 import numpy as np
-import pickle
 import urllib.request
 from PIL import Image
 from deepface import DeepFace
 import mediapipe as mp
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision as mp_vision
+
+# ─── Dossiers de sauvegarde ───────────────────────────────────────────────────
+FACES_DIR     = os.path.join(os.path.dirname(__file__), "..", "static", "faces")
+ENCODINGS_DIR = os.path.join(os.path.dirname(__file__), "..", "static", "encodings")
+os.makedirs(FACES_DIR,     exist_ok=True)
+os.makedirs(ENCODINGS_DIR, exist_ok=True)
 
 # ─── Instructions par angle ───────────────────────────────────────────────────
 ANGLE_INSTRUCTIONS = {
@@ -29,7 +34,7 @@ PITCH_MIN      = 15
 DIAG_YAW_MIN   = 18
 DIAG_PITCH_MIN = 12
 
-# ─── Téléchargement + chargement MediaPipe ───────────────────────────────────
+# ─── Chargement MediaPipe ─────────────────────────────────────────────────────
 _MODEL_PATH = os.path.join(os.path.dirname(__file__), "face_landmarker.task")
 
 if not os.path.exists(_MODEL_PATH):
@@ -63,31 +68,30 @@ _LM_IDS = [1, 152, 263, 33, 287, 57]
 
 def _estimate_pose(image_rgb: np.ndarray):
     """MediaPipe landmarks + solvePnP → (yaw, pitch) en degrés."""
-    h, w = image_rgb.shape[:2]
+    h, w  = image_rgb.shape[:2]
     result = _face_landmarker.detect(
         mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
     )
     if not result.face_landmarks:
         return None, None
 
-    lm = result.face_landmarks[0]
+    lm    = result.face_landmarks[0]
     pts2d = np.array([[lm[i].x * w, lm[i].y * h] for i in _LM_IDS], dtype=np.float64)
+    cam   = np.array([[w, 0, w/2], [0, w, h/2], [0, 0, 1]], dtype=np.float64)
 
-    cam = np.array([[w, 0, w/2], [0, w, h/2], [0, 0, 1]], dtype=np.float64)
-    ok, rvec, _ = cv2.solvePnP(_FACE_3D, pts2d, cam, np.zeros((4,1)),
+    ok, rvec, _ = cv2.solvePnP(_FACE_3D, pts2d, cam, np.zeros((4, 1)),
                                 flags=cv2.SOLVEPNP_ITERATIVE)
     if not ok:
         return None, None
 
     rmat, _ = cv2.Rodrigues(rvec)
-    sy    = np.sqrt(rmat[0,0]**2 + rmat[1,0]**2)
-    pitch = -np.degrees(np.arctan2(rmat[2,1], rmat[2,2]))
-    yaw   = -np.degrees(np.arctan2(-rmat[2,0], sy))
+    sy    = np.sqrt(rmat[0, 0]**2 + rmat[1, 0]**2)
+    pitch = -np.degrees(np.arctan2(rmat[2, 1], rmat[2, 2]))
+    yaw   = -np.degrees(np.arctan2(-rmat[2, 0], sy))
     return round(float(yaw), 2), round(float(pitch), 2)
 
 
 def _classify(yaw: float, pitch: float):
-    """Retourne l'angle ou None si zone ambiguë."""
     if yaw < -DIAG_YAW_MIN and pitch < -DIAG_PITCH_MIN:
         return "diag_gauche"
     if yaw >  DIAG_YAW_MIN and pitch < -DIAG_PITCH_MIN:
@@ -110,22 +114,20 @@ def _classify(yaw: float, pitch: float):
 def detect_face_angle(image_bytes: bytes) -> dict:
     """Détecte l'angle de la tête depuis une image JPEG."""
     img = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"), dtype=np.uint8)
-
     yaw, pitch = _estimate_pose(img)
 
-    # Fallback RetinaFace si MediaPipe échoue
     if yaw is None:
         try:
-            faces = DeepFace.extract_faces(img_path=img,
-                                           detector_backend="retinaface",
+            faces = DeepFace.extract_faces(img_path=img, detector_backend="retinaface",
                                            enforce_detection=True, align=False)
             r  = faces[0]["facial_area"]
             le = faces[0].get("left_eye")
             re = faces[0].get("right_eye")
             if le and re:
-                cx = (le[0]+re[0])/2; cy = (le[1]+re[1])/2
-                yaw   = round(((cx-(r["x"]+r["w"]/2))/(r["w"]/2+1e-6))*50, 2)
-                pitch = round(((cy-(r["y"]+r["h"]/2))/(r["h"]/2+1e-6))*50, 2)
+                cx    = (le[0] + re[0]) / 2
+                cy    = (le[1] + re[1]) / 2
+                yaw   = round(((cx - (r["x"] + r["w"]/2)) / (r["w"]/2 + 1e-6)) * 50, 2)
+                pitch = round(((cy - (r["y"] + r["h"]/2)) / (r["h"]/2 + 1e-6)) * 50, 2)
         except Exception:
             pass
 
@@ -143,74 +145,73 @@ def detect_face_angle(image_bytes: bytes) -> dict:
     }
 
 
-def crop_face(image_bytes: bytes) -> bytes | None:
+def crop_face(image_bytes: bytes, student_id: int, angle: str) -> str | None:
     """
-    Détecte et recadre uniquement le visage depuis une image JPEG.
-    Retourne le crop en JPEG bytes, ou None si aucun visage trouvé.
-    
-    Padding de 30% autour du visage pour inclure le front et le menton.
-    Taille finale : 224x224px (standard pour les modèles de reconnaissance).
+    Détecte, recadre et sauvegarde le visage sur disque.
+    Retourne le chemin relatif ex: 'static/faces/1_face.jpg'
     """
     try:
-        img = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"), dtype=np.uint8)
+        img  = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"), dtype=np.uint8)
         h, w = img.shape[:2]
 
-        # RetinaFace : meilleure détection de visage
-        faces = DeepFace.extract_faces(
-            img_path=img,
-            detector_backend="retinaface",
-            enforce_detection=True,
-            align=False,
-        )
-
+        faces = DeepFace.extract_faces(img_path=img, detector_backend="retinaface",
+                                       enforce_detection=True, align=False)
         if not faces:
             return None
 
-        r   = faces[0]["facial_area"]
+        r             = faces[0]["facial_area"]
         x, y, fw, fh = r["x"], r["y"], r["w"], r["h"]
+        pad_x, pad_y  = int(fw * 0.30), int(fh * 0.30)
 
-        # Padding 30% pour ne pas couper le front/menton
-        pad_x = int(fw * 0.30)
-        pad_y = int(fh * 0.30)
+        x1 = max(0, x - pad_x);  y1 = max(0, y - pad_y)
+        x2 = min(w, x + fw + pad_x); y2 = min(h, y + fh + pad_y)
 
-        x1 = max(0, x - pad_x)
-        y1 = max(0, y - pad_y)
-        x2 = min(w, x + fw + pad_x)
-        y2 = min(h, y + fh + pad_y)
+        face_resized = cv2.resize(img[y1:y2, x1:x2], (224, 224), interpolation=cv2.INTER_AREA)
 
-        # Crop du visage
-        face_crop = img[y1:y2, x1:x2]
+        filename      = f"{student_id}_{angle}.jpg"
+        absolute_path = os.path.join(FACES_DIR, filename)
+        relative_path = f"static/faces/{filename}"
 
-        # Redimensionner à 224x224
-        face_resized = cv2.resize(face_crop, (224, 224), interpolation=cv2.INTER_AREA)
-
-        # Convertir en JPEG bytes
-        pil_img = Image.fromarray(face_resized)
-        buffer  = io.BytesIO()
-        pil_img.save(buffer, format="JPEG", quality=90)
-        return buffer.getvalue()
+        Image.fromarray(face_resized).save(absolute_path, format="JPEG", quality=90)
+        print(f"📸 Image sauvegardée : {relative_path}")
+        return relative_path
 
     except Exception as e:
-        print(f"⚠️ crop_face erreur: {e}")
+        print(f"⚠️ crop_face erreur ({angle}): {e}")
         return None
 
 
 def generate_encoding_for_angle(image_bytes: bytes) -> np.ndarray:
     """Génère un embedding ArcFace 512D normalisé."""
-    img = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"), dtype=np.uint8)
+    img    = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"), dtype=np.uint8)
     result = DeepFace.represent(img_path=img, model_name="ArcFace",
                                 detector_backend="retinaface", enforce_detection=True)
     emb = np.array(result[0]["embedding"], dtype=np.float64)
     return emb / (np.linalg.norm(emb) + 1e-8)
 
 
-def compute_final_encoding(encodings: list) -> bytes:
-    """Moyenne des embeddings → pickle bytes."""
+def compute_final_encoding(encodings: list, student_id: int) -> str:
+    """
+    Moyenne des embeddings → sauvegarde fichier .npy sur disque.
+    Retourne le chemin relatif ex: 'static/encodings/1_encoding.npy'
+    """
     arr  = np.mean(np.array(encodings), axis=0)
     arr /= (np.linalg.norm(arr) + 1e-8)
-    return pickle.dumps(arr)
+
+    filename      = f"{student_id}_encoding.npy"
+    absolute_path = os.path.join(ENCODINGS_DIR, filename)
+    relative_path = f"static/encodings/{filename}"
+
+    np.save(absolute_path, arr)
+    print(f"💾 Encoding sauvegardé : {relative_path}")
+    return relative_path
 
 
-def decode_face_encoding(data: bytes) -> np.ndarray:
-    """Décode un encoding stocké en base."""
-    return pickle.loads(data)
+def decode_face_encoding(encoding_path: str) -> np.ndarray:
+    """
+    Charge un encoding depuis son chemin .npy.
+    encoding_path : 'static/encodings/1_encoding.npy'
+    """
+    base_dir      = os.path.join(os.path.dirname(__file__), "..")
+    absolute_path = os.path.join(base_dir, encoding_path)
+    return np.load(absolute_path)
