@@ -1,11 +1,12 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database.config import SessionLocal
-from database.models import Student
+from database.models import Student, StudentFaceImage
 from ai.face_encoding import (
     detect_face_angle,
     generate_encoding_for_angle,
     compute_final_encoding,
+    crop_face,
 )
 
 router = APIRouter()
@@ -47,8 +48,6 @@ def get_angles_requis():
 async def scan_angle(image: UploadFile = File(...)):
     image_bytes = await image.read()
     result = detect_face_angle(image_bytes)
-
-    # Ne pas lever d'exception si pas de visage — le frontend gère ça
     return {
         "detected":    result["detected"],
         "angle":       result.get("angle"),
@@ -90,9 +89,12 @@ async def inscrire_etudiant_complet(
         "diag_droite": await image_diag_droite.read(),
     }
 
-    # 3. Générer les embeddings ArcFace
+    # 3. Générer les embeddings ArcFace + crop du visage pour chaque angle
     encodings = []
+    crops     = {}  # { angle: jpeg_bytes }
+
     for angle_name, img_bytes in images.items():
+        # Embedding ArcFace
         try:
             encoding = generate_encoding_for_angle(img_bytes)
             encodings.append(encoding)
@@ -100,14 +102,22 @@ async def inscrire_etudiant_complet(
         except Exception as e:
             raise HTTPException(
                 status_code=400,
-                detail=f"Erreur sur l'angle '{angle_name}': {str(e)}"
+                detail=f"Erreur encoding angle '{angle_name}': {str(e)}"
             )
+
+        # Crop du visage (ne bloque pas si échoue)
+        crop = crop_face(img_bytes)
+        if crop:
+            crops[angle_name] = crop
+            print(f"📸 Crop visage '{angle_name}' : {len(crop)} bytes")
+        else:
+            print(f"⚠️ Crop échoué pour '{angle_name}' — ignoré")
 
     # 4. Encoding final (moyenne des 7)
     final_encoding_bytes = compute_final_encoding(encodings)
     print(f"✅ Encoding final calculé ({len(encodings)} angles)")
 
-    # 5. Sauvegarder
+    # 5. Sauvegarder l'étudiant
     nouvel_etudiant = Student(
         nom=nom,
         prenom=prenom,
@@ -117,6 +127,16 @@ async def inscrire_etudiant_complet(
         face_encoding=final_encoding_bytes
     )
     db.add(nouvel_etudiant)
+    db.flush()  # Pour obtenir l'ID avant le commit
+
+    # 6. Sauvegarder les crops dans student_face_images
+    for angle_name, jpeg_bytes in crops.items():
+        db.add(StudentFaceImage(
+            student_id=nouvel_etudiant.id,
+            angle=angle_name,
+            image_data=jpeg_bytes,
+        ))
+
     db.commit()
     db.refresh(nouvel_etudiant)
 
@@ -125,5 +145,6 @@ async def inscrire_etudiant_complet(
         "etudiant_id":     nouvel_etudiant.id,
         "nom":             nouvel_etudiant.nom,
         "prenom":          nouvel_etudiant.prenom,
-        "angles_captures": len(encodings)
+        "angles_captures": len(encodings),
+        "photos_sauvées":  len(crops),
     }

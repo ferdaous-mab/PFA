@@ -143,6 +143,58 @@ def detect_face_angle(image_bytes: bytes) -> dict:
     }
 
 
+def crop_face(image_bytes: bytes) -> bytes | None:
+    """
+    Détecte et recadre uniquement le visage depuis une image JPEG.
+    Retourne le crop en JPEG bytes, ou None si aucun visage trouvé.
+    
+    Padding de 30% autour du visage pour inclure le front et le menton.
+    Taille finale : 224x224px (standard pour les modèles de reconnaissance).
+    """
+    try:
+        img = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"), dtype=np.uint8)
+        h, w = img.shape[:2]
+
+        # RetinaFace : meilleure détection de visage
+        faces = DeepFace.extract_faces(
+            img_path=img,
+            detector_backend="retinaface",
+            enforce_detection=True,
+            align=False,
+        )
+
+        if not faces:
+            return None
+
+        r   = faces[0]["facial_area"]
+        x, y, fw, fh = r["x"], r["y"], r["w"], r["h"]
+
+        # Padding 30% pour ne pas couper le front/menton
+        pad_x = int(fw * 0.30)
+        pad_y = int(fh * 0.30)
+
+        x1 = max(0, x - pad_x)
+        y1 = max(0, y - pad_y)
+        x2 = min(w, x + fw + pad_x)
+        y2 = min(h, y + fh + pad_y)
+
+        # Crop du visage
+        face_crop = img[y1:y2, x1:x2]
+
+        # Redimensionner à 224x224
+        face_resized = cv2.resize(face_crop, (224, 224), interpolation=cv2.INTER_AREA)
+
+        # Convertir en JPEG bytes
+        pil_img = Image.fromarray(face_resized)
+        buffer  = io.BytesIO()
+        pil_img.save(buffer, format="JPEG", quality=90)
+        return buffer.getvalue()
+
+    except Exception as e:
+        print(f"⚠️ crop_face erreur: {e}")
+        return None
+
+
 def generate_encoding_for_angle(image_bytes: bytes) -> np.ndarray:
     """Génère un embedding ArcFace 512D normalisé."""
     img = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"), dtype=np.uint8)
