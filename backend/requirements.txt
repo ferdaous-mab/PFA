@@ -1,19 +1,36 @@
 # Backend web
+
 fastapi==0.109.2
 uvicorn==0.23.2
 
-# IA reconnaissance faciale
+# IA reconnaissance faciale (versions compatibles)
+
 deepface==0.0.91
 retina-face==0.0.15
+tensorflow==2.15
+keras==2.15
+tf_keras
 
 # Traitement d’images
+
 numpy==1.26.4
 opencv-python==4.8.1.78
 Pillow==10.1.0
+mediapipe==0.10.9
 
 # Base de données PostgreSQL
+
 psycopg2-binary==2.9.9
 SQLAlchemy==2.0.22
 
-# (optionnel) pour logs et débogage
+# Gestion des variables d’environnement
+
+python-dotenv==1.0.1
+
+# Upload fichiers (FastAPI)
+
+python-multipart==0.0.9
+
+# (optionnel) logs et debug
+
 rich==13.5.2
