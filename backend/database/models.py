@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, LargeBinary, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database.config import Base
@@ -13,7 +13,7 @@ class Student(Base):
     email_academique = Column(String(100), unique=True, nullable=False)
     classe           = Column(String(50),  nullable=False)
     annee_scolaire   = Column(String(20),  nullable=False)
-    face_encoding    = Column(String(255), nullable=False)  # ex: static/encodings/1_encoding.npy
+    face_encoding    = Column(LargeBinary, nullable=False)  # float32 + zlib ~800 bytes
     date_inscription = Column(DateTime,    default=datetime.utcnow)
 
     face_images      = relationship("StudentFaceImage", back_populates="student",
@@ -26,7 +26,7 @@ class StudentFaceImage(Base):
     id          = Column(Integer, primary_key=True, index=True)
     student_id  = Column(Integer, ForeignKey("students.id"), nullable=False)
     angle       = Column(String(20),  nullable=False)
-    image_path  = Column(String(255), nullable=False)   # ex: static/faces/1_face.jpg
+    image_path  = Column(String(255), nullable=False)  # static/faces/1_face.jpg
     captured_at = Column(DateTime, default=datetime.utcnow)
 
     student     = relationship("Student", back_populates="face_images")
